@@ -3,7 +3,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * This class represents a probability entry in a probability table for one variable.
+ * This class represents a probability entry in a probability table for (one) variable.
  * It contains a map of parents status, and the probability of the outcome given that status.
  */
 public class ProbabilityEntry {
@@ -52,7 +52,6 @@ public class ProbabilityEntry {
 
     @Override
     public String toString() {
-        // Correctly use the childOutcome field value
         String parentInfo = getStatusParents();
         if (parentInfo.isEmpty()) {
             return ("P(" + getOutcome() + ") = " + getProbability());
