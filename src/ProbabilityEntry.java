@@ -9,9 +9,7 @@ import java.util.Objects;
 public class ProbabilityEntry {
 
     private final double _probability;
-
     private final String _outcome;
-
     private final Map<String, String> _statusParent;
 
     public ProbabilityEntry(Map<String, String> statusParent, double probability, String outcome) {

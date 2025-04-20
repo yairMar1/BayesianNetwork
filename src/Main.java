@@ -9,7 +9,7 @@ import java.nio.file.Paths;
 
 public class Main {
     public static void main(String[] args) {
-        String xmlFilePath = "src/alarm net.XML";
+        String xmlFilePath = "src/alarm_net.xml";
 
         System.out.println("Attempting to parse XML file: " + xmlFilePath);
         NetworkXmlParser parser = new NetworkXmlParser();
