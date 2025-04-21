@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.List;
 
 public class Main {
@@ -73,7 +74,42 @@ public class Main {
                     Files.writeString(OutPutFile, SimplestQuery.calculateJointProbability(network, queryLine), StandardCharsets.UTF_8);
                     System.out.println("----------------------- End of query " + i +" -----------------------------------");
                 }
-                // For now, just print the query line to confirm it's read
+                if (queryLine.contains("|")) {
+                    System.out.println("----------------------- Start of query " + i +" -----------------------------------");
+                    System.out.println("Second option - the more complex query. " + queryLine);
+                    // remove the "P(" from the beginning of the query line
+                    String newLine = queryLine.replace("P(","");
+
+                    String[] parts = newLine.split("\\),");
+                    System.out.println(Arrays.toString(parts));
+
+                    // Extract the query variable and evidence variables
+                    String[] queryParts = parts[0].split("\\|");
+                    System.out.println(Arrays.toString(queryParts));
+
+                    String[] evidenceParts = queryParts[1].split(",");
+                    System.out.println(Arrays.toString(evidenceParts));
+
+                    String algorithm = parts[1].trim();
+
+                    // Call the appropriate method based on the algorithm
+                    switch (algorithm) {
+                        case "1":
+                            System.out.println("Using Algorithm 1");
+                            break;
+                        case "2":
+                            System.out.println("Using Algorithm 2");
+                            break;
+                        case "3":
+                            System.out.println("Using Algorithm 3");
+                            break;
+                        default:
+                            System.out.println("Invalid algorithm specified: " + algorithm);
+                            break;
+                    }
+                    System.out.println("----------------------- End of query " + i +" -----------------------------------");
+                }
+                // Just print the query line to confirm it's read
                 System.out.println("Read query line [" + (i+1) + "]: " + queryLine);
             }
 

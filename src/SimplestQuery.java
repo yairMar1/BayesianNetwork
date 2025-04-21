@@ -1,83 +1,116 @@
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SimplestQuery {
+
+    /**
+     * This function calculates the joint probability of a given query in a Bayesian network.
+     * The query is expected to be in the format P(X1=x1, X2=x2, ..., Xn=xn),
+     * where Xi are the variable names and xi are their assigned values.
+     * The function returns the joint probability as a string formatted to 5 decimal places.
+     *
+     * @param network The Bayesian network containing the definitions (CPTs).
+     * @param query   The query string representing the joint probability to calculate.
+     * @return A string representing the joint probability, formatted to 5 decimal places.
+     */
+
     public static String calculateJointProbability(BayesianNetwork network, String query) {
-        // Remove the symbols: P ( )
-        query = query.replace("P(", "").replace(")", "");
-        String answer = "";
+        // Check if the query build is correct
+        if (!query.startsWith("P(") || !query.endsWith(")")) {
+            return "Error: Invalid query format. Expected P(...)";
+        }
+        // remove "P(" and ")" from the query
+        String assignmentsString = query.replace("P(", "").replace(")", "");
 
-        // Split the query into variable-value pairs
-        String[] variableValuePairs = query.split(",");
-        System.out.println("Variable-Value Pairs: " + Arrays.toString(variableValuePairs));
-        final double[] jointProbability = {1.0};
+        // Create a map to hold the variable from the query
+        // The map will hold the variable names as keys and their assigned values as values
+        Map<String, String> queryAssignments = new HashMap<>();
+        String[] variableValuePairs = assignmentsString.split(",");
 
-        // Iterate through each variable-value pair
-        for (int i = 0; i < variableValuePairs.length; i++) {
-            String pair = variableValuePairs[i].trim();
-            // Split the pair into variable and value
-            String[] parts = pair.split("=");
-            //System.out.println(Arrays.toString(parts));
-            if (parts.length != 2) {
-                System.err.println("Invalid variable-value pair: " + pair);
-                return "Invalid input format";
-            }
-            String variable = parts[0].trim(); // Variable name
-            String value = parts[1].trim(); // Value of the variable
-
-            // Get the conditional probability table for the variable
-            if(network.getVariablesString().contains("name='" + variable + '\'' )) {
-                System.out.println("I got Variable: " + variable + ", Value: " + value);
-
-                // Extracting the variable from the network
-                // If it has no parents, we will take the probability of that variable with its value.
-                // If it has parents, we will consider the value of its parents and their value
-
-                network.getDefinitions().forEach(definition -> {
-                    if (definition.getName().equals(variable)) {
-                        // Check if the variable has parents
-                        if (definition.getParents().isEmpty()) {
-                            System.out.println("Variable has no parents");
-                            // No parents, use the probability directly
-                            for (ProbabilityEntry entry : definition.getProbabilityList()) {
-                                if (entry.getOutcome().equals(value)) {
-                                    jointProbability[0] *= entry.getProbability();
-                                    System.out.println("Joint Probability: " + jointProbability[0]);
-                                }
-                            }
-                        } else {
-                            // Variable has parents, we need to find the corresponding entry in the CPT
-                            System.out.println("Variable has parents");
-                            // Extracting the value of the variable's parents from the query
-                            // we multiply the joint probability by the probability of the variable given its parents
-                            for (ProbabilityEntry entry : definition.getProbabilityList()) {
-                                if(entry.getOutcome().equals(value)) { // Check if the outcome matches to the value of the variable
-                                    // Check if the entry's parent status matches the query
-                                    boolean match = true;
-                                    for (String parent : definition.getParents()) {
-                                        String parentValue = Arrays.stream(variableValuePairs)
-                                                .filter(p -> p.startsWith(parent + "="))
-                                                .map(p -> p.split("=")[1].trim())
-                                                .findFirst()
-                                                .orElse(null);
-                                        if (parentValue == null || !entry.getStatusParent().get(parent).equals(parentValue)) {
-                                            match = false;
-                                            break;
-                                        }
-                                    }
-                                    if (match) {
-                                        jointProbability[0] *= entry.getProbability();
-                                        System.out.println("Joint Probability with Parents: " + jointProbability[0]);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+        for (String pair : variableValuePairs) {
+            String[] parts = pair.trim().split("=");
+            if (parts.length == 2) {
+                String varName = parts[0].trim();
+                String varValue = parts[1].trim();
+                if (varName.isEmpty() || varValue.isEmpty()) {
+                    return "Error: Invalid variable-value pair format: " + pair;
+                }
+                queryAssignments.put(varName, varValue); // Add the variable and its value to the map
+            } else {
+                return "Error: Invalid variable-value pair format: " + pair;
             }
         }
-        // enter the joint probability to answer, number of add action, number of multiplying
-        answer += String.format("%.5f", jointProbability[0]);
-        answer += ",0," + (variableValuePairs.length-1);
-        return answer;
+
+        double jointProbability = 1.0;
+
+        // Create a map to hold the definitions (CPTs) of the network
+        Map<String, Definition> definitionMap = new HashMap<>();
+        for (Definition def : network.getDefinitions()) {
+            definitionMap.put(def.getName(), def);
+        }
+
+        // for each variable in the query, find its definition (CPT) and calculate the joint probability
+        for (String variableName : queryAssignments.keySet()) {
+            String assignedValue = queryAssignments.get(variableName); // the value in the query
+
+            // find the definition (CPT) for the variable
+            Definition definition = definitionMap.get(variableName);
+
+            // Function to find the matching entry in the CPT
+            ProbabilityEntry matchingEntry = findMatchingEntry(definition, assignedValue, queryAssignments);
+
+            if (matchingEntry != null) {
+                // Multiply the joint probability by the probability of the matching entry
+                jointProbability *= matchingEntry.getProbability();
+
+//                System.out.println("Processing: " + variableName + "=" + assignedValue +
+//                        ". Found P = " + matchingEntry.getProbability() +
+//                        ". Current Joint = " + jointProbability);
+            } else {
+                System.err.println("Warning: No matching CPT entry found for " + variableName + "=" + assignedValue +
+                        " given parent assignments in query.");
+                jointProbability = 0.0;
+                break;
+            }
+        }
+
+        String answer = String.format("%.5f", jointProbability);
+        return answer + ",0," + (queryAssignments.size()-1);
+    }
+
+    /** this function finds the matching entry in the CPT for a given variable
+     * the parameters are:
+     * 1. definition - the definition of the variable (CPT)
+     * 2. assignedValue - the value assigned to the variable in the query
+     * 3. queryAssignments - the map of all variable assignments in the query
+     * the function returns the matching entry if found, otherwise null
+     * the function checks if the definition has parents or not
+     */
+    private static ProbabilityEntry findMatchingEntry(Definition definition, String assignedValue, Map<String, String> queryAssignments) {
+        // Iterate over the probability entries in the definition
+        for (ProbabilityEntry entry : definition.getProbabilityList()) {
+            //Check if the outcome of the entry matches the assigned value
+            if (entry.getOutcome().equals(assignedValue)) {
+                // Check if the entry has parents
+                boolean parentsMatch = true;
+                Map<String, String> entryParentStates = entry.getStatusParent(); // the parents status of the entry
+
+                // We need to check if the entry has parents
+                for (Map.Entry<String, String> requiredParentEntry : entryParentStates.entrySet()) {
+                    String parentName = requiredParentEntry.getKey(); // the name of the parent
+                    String requiredParentValue = requiredParentEntry.getValue(); // the value of the parent in the entry
+
+                    String queryParentValue = queryAssignments.get(parentName); // the value of the parent in the query
+
+                    if (queryParentValue == null || !queryParentValue.equals(requiredParentValue)) {
+                        parentsMatch = false;
+                        break;
+                    }
+                }
+                if (parentsMatch) {return entry;}
+            }
+        }
+        // if no matching entry is found, return null
+        return null;
     }
 }
