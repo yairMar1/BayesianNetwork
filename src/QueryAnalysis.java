@@ -12,7 +12,7 @@ import java.util.*;
  */
 
 public class QueryAnalysis {
-    public static List<Map<String, List<ProbabilityEntry>>> classifiedVariable(String query, BayesianNetwork network) {
+    public static List<Object> classifiedVariable(String query, BayesianNetwork network) {
         // remove the "P(" from the beginning of the query line
         String newLine = query.replace("P(","");
 
@@ -31,6 +31,23 @@ public class QueryAnalysis {
 
         String[] queryParts = AllQueryParts[0].split(",");
         //System.out.println("Query " + Arrays.toString(queryParts));
+
+
+        // Assuming only one assignment in the query part for this algorithm type P(Var=Value | ...)
+        // I assume it, because all the queries are like P(One Variable|?)
+        Map<String, String> requestedQueryAssignment = new HashMap<>();
+        if (queryParts.length != 1) {
+            System.err.println("Warning: Expected exactly one variable assignment in the query part, but found " + queryParts.length + ". Using the first one: " + queryParts[0]);
+        }
+        String queryAssignmentPart = queryParts[0]; // Take the first part as the query assignment
+
+        String[] varValue = queryAssignmentPart.trim().split("=");
+        if (varValue.length == 2) {
+            requestedQueryAssignment.put(varValue[0].trim(), varValue[1].trim());
+        } else {
+            System.err.println("Error: Invalid query part format when building requestedQueryAssignment: " + queryAssignmentPart + ". Expected 'Var=Value'.");
+            return new ArrayList<>(); // Return empty list to indicate error
+        }
 
         // Create a map to hold the definitions (CPTs) of the network
         Map<String, List<ProbabilityEntry>> queryMap = new HashMap<>();
@@ -68,7 +85,6 @@ public class QueryAnalysis {
 //            }
 //        }
 
-
         Map<String, List<ProbabilityEntry>> evidenceMap = new HashMap<>();
 
         // Create a temporary map to store the observed values for evidence variables
@@ -76,28 +92,21 @@ public class QueryAnalysis {
         // Loop through the evidenceParts array (e.g., ["J=T", "M=T"]) to build evidenceAssignments map
         for (String part : evidenceParts) {
             //System.out.println("Processing evidenceParts item for assignment: '" + part + "'"); // Debug processing each part
-            String[] varValue = part.trim().split("="); // Example: "J=T" -> ["J", "T"]
-            if (varValue.length == 2) {
-                evidenceAssignments.put(varValue[0].trim(), varValue[1].trim());
+            String[] varValue1 = part.trim().split("="); // Example: "J=T" -> ["J", "T"]
+            if (varValue1.length == 2) {
+                evidenceAssignments.put(varValue1[0].trim(), varValue1[1].trim());
             } else {
                 System.err.println("Error: Invalid evidence part format when building assignments: " + part + ". Skipping.");
             }
         }
 
-        // Debug print: Show what evidence assignments were parsed
-        //System.out.println("Parsed evidence assignments: " + evidenceAssignments);
-
-
         // We iterate through network variables to find evidence variables and filter their CPTs
         for (Variable var : network.getVariables()) {
-            // Check if this variable is one of the evidence variables based on the names in evidenceAssignments
+            // Check if this variable is one of the evidence variables based on the names in 'evidenceAssignments'
             if (evidenceAssignments.containsKey(var.getName())) {
-                // Get the observed value for this evidence variable from the query
-                String observedValue = evidenceAssignments.get(var.getName());
-
+                String observedValue = evidenceAssignments.get(var.getName()); // The value from the map 'evidenceAssignments'
                 //System.out.println("\nProcessing potential evidence variable for filtering: " + var.getName());
                 //System.out.println("Observed value from query for filtering: '" + observedValue + "'");
-
 
                 // Find the Definition for this evidence variable
                 Definition evidenceDef = null;
@@ -106,13 +115,12 @@ public class QueryAnalysis {
                         evidenceDef = def;
                         break;
                     }
-                }
+                }// Until here we have the definition of the variable
 
                 if (evidenceDef != null) {
                     //System.out.println("Definition found for " + var.getName());
                     List<ProbabilityEntry> fullProbabilityList = evidenceDef.getProbabilityList();
-                    List<ProbabilityEntry> filteredProbabilityList = new ArrayList<>();
-
+                    List<ProbabilityEntry> filteredProbabilityList = new ArrayList<>(); // List to hold filtered entries
                     //System.out.println("Full Probability List size for " + var.getName() + ": " + fullProbabilityList.size());
 
                     // Filter the list to include only entries where the outcome matches the observed value
@@ -122,23 +130,14 @@ public class QueryAnalysis {
                         if (entry.getOutcome().trim().equals(observedValue.trim())) {
                             //System.out.println("    -> Match found for outcome '" + observedValue + "'!");
                             filteredProbabilityList.add(entry);
-                        }
-//                        else {
+                        }//else {
 //                            System.out.println("    -> Outcome '" + entry.getOutcome() + "' does not match observed value '" + observedValue + "'.");
 //                        }
                     }
-
                     //System.out.println("Filtered Probability List size for " + var.getName() + " after filtering: " + filteredProbabilityList.size());
 
-
-                    // Add the variable name and the filtered list to the evidenceMap ONLY IF the filtered list is not empty
-                    // We add to the map here if it's an evidence variable that was found,
-                    // even if the filtered list is empty, to indicate it was processed as evidence.
-                    // The empty list might indicate a data issue (e.g., observed value not in CPT).
                     evidenceMap.put(var.getName(), filteredProbabilityList); // Add even if empty for now for clarity
                     //System.out.println(var.getName() + " added to evidenceMap with " + filteredProbabilityList.size() + " entries.");
-
-
                 } else {
                     System.err.println("Error: Definition not found for evidence variable: " + var.getName());
                 }
@@ -157,11 +156,12 @@ public class QueryAnalysis {
             }
         }
 
-        List<Map<String, List<ProbabilityEntry>>> variables = new ArrayList<>();
-        variables.add(0, queryMap);
-        variables.add(1, evidenceMap);
-        variables.add(2, hiddenMap);
+        List<Object> variablesInfo = new ArrayList<>();
+        variablesInfo.add(0, requestedQueryAssignment);
+        variablesInfo.add(1, queryMap);
+        variablesInfo.add(2, evidenceMap);
+        variablesInfo.add(3, hiddenMap);
 
-        return variables;
+        return variablesInfo;
     }
 }

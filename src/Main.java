@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 public class Main {
@@ -39,6 +40,7 @@ public class Main {
             // Define the output file path
             Path outputPath = Paths.get("BayesianNetwork.txt");
             Path OutPutFile = Paths.get("output.txt");
+            StringBuilder ans = new StringBuilder();
 
             // Write the string to the file using Files.writeString
             Files.writeString(outputPath, networkOutputString, StandardCharsets.UTF_8);
@@ -69,7 +71,7 @@ public class Main {
                     System.out.println("----------------------- Start of query " + i +" -----------------------------------");
                     System.out.println("First option - the simplest query. " + queryLine);
                     System.out.println(SimplestQuery.calculateJointProbability(network, queryLine));
-                    Files.writeString(OutPutFile, SimplestQuery.calculateJointProbability(network, queryLine), StandardCharsets.UTF_8);
+                    ans.append(SimplestQuery.calculateJointProbability(network, queryLine)).append("\n");
                     System.out.println("----------------------- End of query " + i +" -----------------------------------");
                 }
                 if (queryLine.contains("|")) {
@@ -80,37 +82,53 @@ public class Main {
                     /**
                      * Here I send the query line to the function that will classify the variables
                      * The function will return a list of maps.
-                     * The first map will contain the query variable.
-                     * The second map will contain the evidence variables.
-                     * The third map will contain the hidden variables.
+                     * The first map will contain the query variable and his value we are looking for.
+                     * The second map will contain the query variable and his list<ProbabilityEntry>.
+                     * The third map will contain the evidence variables and his list<ProbabilityEntry>.
+                     * The fourth map will contain the hidden variables and his list<ProbabilityEntry>.
                      */
-                    List<Map<String, List<ProbabilityEntry>>> vars = QueryAnalysis.classifiedVariable(queryLine, network);
-                    System.out.println("Query variable: " + vars.get(0) + " Number of var: " + vars.get(0).size());
-                    System.out.println("Evidence variables: " + vars.get(1) + " Number of var: " + vars.get(1).size());
-                    System.out.println("Hidden variables: " + vars.get(2) + " Number of var: " + vars.get(2).size());
+                    List<Object> vars = QueryAnalysis.classifiedVariable(queryLine, network);
+                    System.out.println("Classified variables: " + vars.get(0)); // The value we need to take after the normalization
+                    System.out.println("Query variable: " + vars.get(1));
+                    System.out.println("Evidence variables: " + vars.get(2)); // Here we have the evidence outcome that observed
+                    System.out.println("Hidden variables: " + vars.get(3));
 
-                    String algorithm = queryLine.substring(queryLine.lastIndexOf(",") + 1).trim();
+                    if (vars.size() == 4) {
+                        Map<String, String> requestedQueryAssignment = (Map<String, String>) vars.get(0);
+                        Map<String, List<ProbabilityEntry>> queryMap = (Map<String, List<ProbabilityEntry>>) vars.get(1);
+                        Map<String, List<ProbabilityEntry>> evidenceMap = (Map<String, List<ProbabilityEntry>>) vars.get(2);
+                        Map<String, List<ProbabilityEntry>> hiddenMap = (Map<String, List<ProbabilityEntry>>) vars.get(3);
 
-                    // Call the appropriate method based on the algorithm
-                    switch (algorithm) {
-                        case "1":
-                            System.out.println("Using Algorithm 1");
-                            break;
-                        case "2":
-                            System.out.println("Using Algorithm 2");
-                            break;
-                        case "3":
-                            System.out.println("Using Algorithm 3");
-                            break;
-                        default:
-                            System.out.println("Invalid algorithm specified: " + algorithm);
-                            break;
+                        String algorithm = queryLine.substring(queryLine.lastIndexOf(",") + 1).trim();
+
+                        switch (algorithm) {
+                            case "1":
+                                System.out.println("Using Algorithm 1");
+                                String result = Algorithm1.calculateProbability(requestedQueryAssignment, queryMap, evidenceMap, hiddenMap, network);
+                                System.out.println("Result: " + result);
+                                ans.append(result).append("\n");
+                                break;
+                            case "2":
+                                System.out.println("Using Algorithm 2");
+                                break;
+                            case "3":
+                                System.out.println("Using Algorithm 3");
+                                break;
+                            default:
+                                System.out.println("Invalid algorithm specified: " + algorithm);
+                                break;
+                        }
+                    }else{
+                        System.err.println("Error: classifiedVariable did not return the expected number of components for query: " + queryLine);
+                        return;
                     }
                     System.out.println("----------------------- End of query " + i +" -----------------------------------");
                 }
                 // Just print the query line to confirm it's read
                 System.out.println("Read query line [" + (i+1) + "]: " + queryLine);
             }
+            // Write the results to the output file
+            Files.writeString(OutPutFile, ans, StandardCharsets.UTF_8);
 
 
         } catch (ParserConfigurationException e) {
