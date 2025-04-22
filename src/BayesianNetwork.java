@@ -46,12 +46,12 @@ public class BayesianNetwork {
         return sb.toString();
     }
 
-    public String getCPT(){
-        StringBuilder sb = new StringBuilder();
-        for (Definition definition : _definitions) {
-            sb.append(definition.toString());
-        }
-        return sb.toString();
-    }
+//    public String getCPT(){
+//        StringBuilder sb = new StringBuilder();
+//        for (Definition definition : _definitions) {
+//            sb.append(definition.toString());
+//        }
+//        return sb.toString();
+//    }
 
 }

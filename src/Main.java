@@ -6,18 +6,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
 
-        String txtFilePath = "src/input.txt";
+        String txtFilePath = "input.txt";
         System.out.println("Attempting to read text file: " + txtFilePath);
 
         String firstLine;
-        String xmlFilePath = "src/";
+        String xmlFilePath = "";
         //Try to read the first line of the text file, to extract which XML file to parse
         try {
             firstLine = Files.lines(Paths.get(txtFilePath), StandardCharsets.UTF_8).findFirst()
@@ -77,20 +75,21 @@ public class Main {
                 if (queryLine.contains("|")) {
                     System.out.println("----------------------- Start of query " + i +" -----------------------------------");
                     System.out.println("Second option - the more complex query. " + queryLine);
-                    // remove the "P(" from the beginning of the query line
-                    String newLine = queryLine.replace("P(","");
 
-                    String[] parts = newLine.split("\\),");
-                    System.out.println(Arrays.toString(parts));
 
-                    // Extract the query variable and evidence variables
-                    String[] queryParts = parts[0].split("\\|");
-                    System.out.println(Arrays.toString(queryParts));
+                    /**
+                     * Here I send the query line to the function that will classify the variables
+                     * The function will return a list of maps.
+                     * The first map will contain the query variable.
+                     * The second map will contain the evidence variables.
+                     * The third map will contain the hidden variables.
+                     */
+                    List<Map<String, List<ProbabilityEntry>>> vars = QueryAnalysis.classifiedVariable(queryLine, network);
+                    System.out.println("Query variable: " + vars.get(0) + " Number of var: " + vars.get(0).size());
+                    System.out.println("Evidence variables: " + vars.get(1) + " Number of var: " + vars.get(1).size());
+                    System.out.println("Hidden variables: " + vars.get(2) + " Number of var: " + vars.get(2).size());
 
-                    String[] evidenceParts = queryParts[1].split(",");
-                    System.out.println(Arrays.toString(evidenceParts));
-
-                    String algorithm = parts[1].trim();
+                    String algorithm = queryLine.substring(queryLine.lastIndexOf(",") + 1).trim();
 
                     // Call the appropriate method based on the algorithm
                     switch (algorithm) {
@@ -131,10 +130,77 @@ public class Main {
             e.printStackTrace();
         }
 
-
-
-
-
-
     }
+
+//    public static List<Map<String, List<ProbabilityEntry>>> classifiedVariable(String query, BayesianNetwork network) {
+//        // remove the "P(" from the beginning of the query line
+//        String newLine = query.replace("P(","");
+//
+//        String[] parts = newLine.split("\\),");
+//        System.out.println(Arrays.toString(parts));
+//
+//        // Extract the query variable
+//        // Split the first part by "|"
+//        // the firsts elements of the array are the query variable
+//        // the last element of the array is the evidence variable
+//        String[] AllQueryParts = parts[0].split("\\|");
+//        System.out.println("All the query" + Arrays.toString(AllQueryParts));
+//
+//        String[] evidenceParts = AllQueryParts[1].split(",");
+//        System.out.println("Evidence " + Arrays.toString(evidenceParts));
+//
+//        String[] queryParts = AllQueryParts[0].split(",");
+//        System.out.println("Query " + Arrays.toString(queryParts));
+//
+//        // Create a map to hold the definitions (CPTs) of the network
+//        Map<String, List<ProbabilityEntry>> queryMap = new HashMap<>();
+//        for (Variable var : network.getVariables()) {
+//            for (String part : queryParts) {
+//                if (var.getName().contains(String.valueOf(part.charAt(0)))) {
+//                    for (Definition def : network.getDefinitions()) {
+//                        if (def.getName().equals(var.getName())) {
+//                            queryMap.put(var.getName(), def.getProbabilityList());
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        Map<String, List<ProbabilityEntry>> evidenceMap = new HashMap<>();
+//        for (Variable var : network.getVariables()) {
+//            for (String part : evidenceParts) {
+//                if (!queryMap.containsKey(var.getName())){
+//                    if (var.getName().contains(String.valueOf(part.charAt(0)))) {
+//                        for (Definition def : network.getDefinitions()) {
+//                            if (def.getName().equals(var.getName())) {
+//                                evidenceMap.put(var.getName(), def.getProbabilityList());
+//                                break;
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        Map<String, List<ProbabilityEntry>> hiddenMap = new HashMap<>();
+//        for (Variable var : network.getVariables()) {
+//            if(!queryMap.containsKey(var.getName()) && !evidenceMap.containsKey(var.getName())) {
+//                for (Definition def : network.getDefinitions()) {
+//                    if (def.getName().equals(var.getName())) {
+//                        hiddenMap.put(var.getName(), def.getProbabilityList());
+//                        break;
+//                    }
+//                }
+//            }
+//        }
+//
+//        List<Map<String, List<ProbabilityEntry>>> variables = new ArrayList<>();
+//        variables.add(0, queryMap);
+//        variables.add(1, evidenceMap);
+//        variables.add(2, hiddenMap);
+//
+//        return variables;
+//    }
+
 }
