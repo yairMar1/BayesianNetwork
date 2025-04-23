@@ -110,9 +110,12 @@ public class Main {
                                 break;
                             case "2":
                                 System.out.println("Using Algorithm 2");
+                                String result2 = Algorithm2.calculateProbability(requestedQueryAssignment, queryMap, evidenceMap, hiddenMap, network);
+                                ans.append(result2).append("\n");
                                 break;
                             case "3":
                                 System.out.println("Using Algorithm 3");
+                                //String result3 = Algorithm3.calculateProbability(requestedQueryAssignment, queryMap, evidenceMap, hiddenMap, network);
                                 break;
                             default:
                                 System.out.println("Invalid algorithm specified: " + algorithm);
@@ -127,9 +130,15 @@ public class Main {
                 // Just print the query line to confirm it's read
                 System.out.println("Read query line [" + (i+1) + "]: " + queryLine);
             }
+
+            if (!ans.isEmpty()) {
+                ans.setLength(ans.length() - 1);// Remove the last newline character
+            } else {
+                System.out.println("No results to write to output file.");
+            }
+
             // Write the results to the output file
             Files.writeString(OutPutFile, ans, StandardCharsets.UTF_8);
-
 
         } catch (ParserConfigurationException e) {
             System.err.println("XML Parser Configuration Error: " + e.getMessage());
@@ -149,76 +158,5 @@ public class Main {
         }
 
     }
-
-//    public static List<Map<String, List<ProbabilityEntry>>> classifiedVariable(String query, BayesianNetwork network) {
-//        // remove the "P(" from the beginning of the query line
-//        String newLine = query.replace("P(","");
-//
-//        String[] parts = newLine.split("\\),");
-//        System.out.println(Arrays.toString(parts));
-//
-//        // Extract the query variable
-//        // Split the first part by "|"
-//        // the firsts elements of the array are the query variable
-//        // the last element of the array is the evidence variable
-//        String[] AllQueryParts = parts[0].split("\\|");
-//        System.out.println("All the query" + Arrays.toString(AllQueryParts));
-//
-//        String[] evidenceParts = AllQueryParts[1].split(",");
-//        System.out.println("Evidence " + Arrays.toString(evidenceParts));
-//
-//        String[] queryParts = AllQueryParts[0].split(",");
-//        System.out.println("Query " + Arrays.toString(queryParts));
-//
-//        // Create a map to hold the definitions (CPTs) of the network
-//        Map<String, List<ProbabilityEntry>> queryMap = new HashMap<>();
-//        for (Variable var : network.getVariables()) {
-//            for (String part : queryParts) {
-//                if (var.getName().contains(String.valueOf(part.charAt(0)))) {
-//                    for (Definition def : network.getDefinitions()) {
-//                        if (def.getName().equals(var.getName())) {
-//                            queryMap.put(var.getName(), def.getProbabilityList());
-//                            break;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        Map<String, List<ProbabilityEntry>> evidenceMap = new HashMap<>();
-//        for (Variable var : network.getVariables()) {
-//            for (String part : evidenceParts) {
-//                if (!queryMap.containsKey(var.getName())){
-//                    if (var.getName().contains(String.valueOf(part.charAt(0)))) {
-//                        for (Definition def : network.getDefinitions()) {
-//                            if (def.getName().equals(var.getName())) {
-//                                evidenceMap.put(var.getName(), def.getProbabilityList());
-//                                break;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        Map<String, List<ProbabilityEntry>> hiddenMap = new HashMap<>();
-//        for (Variable var : network.getVariables()) {
-//            if(!queryMap.containsKey(var.getName()) && !evidenceMap.containsKey(var.getName())) {
-//                for (Definition def : network.getDefinitions()) {
-//                    if (def.getName().equals(var.getName())) {
-//                        hiddenMap.put(var.getName(), def.getProbabilityList());
-//                        break;
-//                    }
-//                }
-//            }
-//        }
-//
-//        List<Map<String, List<ProbabilityEntry>>> variables = new ArrayList<>();
-//        variables.add(0, queryMap);
-//        variables.add(1, evidenceMap);
-//        variables.add(2, hiddenMap);
-//
-//        return variables;
-//    }
 
 }
