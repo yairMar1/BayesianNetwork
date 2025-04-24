@@ -3,10 +3,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Algorithm2 {
 
@@ -21,7 +19,6 @@ public class Algorithm2 {
         _numberOfMultiplications = 0;
     }
 
-
     //TODO: 1. Understand which variables are not relevant to the query (as written on page 91)
     //TODO: 2. Prepare the factors from the Maps that are passed to the function
     //TODO: 3. Making a loop that goes through all the hidden variables.
@@ -35,6 +32,11 @@ public class Algorithm2 {
                                               Map<String, List<ProbabilityEntry>> evidenceMap,
                                               Map<String, List<ProbabilityEntry>> hiddenMap,
                                               BayesianNetwork network) throws IOException {
+
+        // Map to store the query variable and its outcome
+        // the map look like {varName, outcomes}
+        Map<String, Variable> variableMap = network.getVariables().stream()
+                .collect(Collectors.toMap(Variable::getName, v -> v));
 
         // Map to store the evidence assignments
         // the map look like {varName, outcome}
@@ -105,11 +107,24 @@ public class Algorithm2 {
         Files.writeString(OutPutFactorsRestricted, FactorsRestricted, StandardCharsets.UTF_8);
 
         // Step 4: Join the factors
+        for (int i = 0; i < factors.size(); i++) {
+            Factor factor = factors.get(i);
+            int counter = 0;
+            for (Map.Entry<Map<String, String>, Double> entry : factor.getValues().entrySet()) {
+                counter++;
+            }
+            if(counter < 2){
+                factors.remove(factor);
+                // Because we removed an element, we need to adjust the index. all the elements after the removed element will shift left
+                i--;
+            }
+        }
+        for (Factor factor : factors) {
+            System.out.println(factor);
+        }
 
-        //Factor joinedFactor = joinFactors(factors);
+        // Step 5: Normalize the final factor
 
-        // Step 6: Normalize the final factor
-        //String result = normalize(finalFactor);
 
         return "Algorithm in progress, the correct result will be returned soon.";
     }

@@ -11,7 +11,6 @@ public class Factor {
     private final List<Variable> _domain;
     private final Map<Map<String, String>, Double> _values;
 
-
     // This constructor is used to create a Factor from a Definition object and a BayesianNetwork object.
     // It initializes the domain of the factor and populates the values based on the definition.
     // this constructor is used when creating factors at the beginning of algorithm 2.
