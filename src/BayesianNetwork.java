@@ -1,5 +1,5 @@
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class represents a Bayesian network:
@@ -46,12 +46,59 @@ public class BayesianNetwork {
         return sb.toString();
     }
 
-//    public String getCPT(){
-//        StringBuilder sb = new StringBuilder();
-//        for (Definition definition : _definitions) {
-//            sb.append(definition.toString());
-//        }
-//        return sb.toString();
-//    }
+    /**
+     * This method returns the ancestors of a variable in the Bayesian network.
+     * It uses BFS to find all ancestors of the given variable.
+     *
+     * @param name The name of the variable whose ancestors we want to find.
+     * @return A list of ancestor variable names.
+     */
+    public List<String> getAncestors(String name) {
+        // Map {variableName , Variable(the Variable object)}
+        Map<String, Variable> variableMap = this.getVariables().stream()
+                .collect(Collectors.toMap(Variable::getName, v -> v));
+
+        Variable startVariable = variableMap.get(name);// The variable we want to find its ancestors
+
+        if (startVariable == null) {
+            return Collections.emptyList();
+        }
+
+        Set<Variable> ancestors = new HashSet<>(); // to store the ancestors
+        Set<Variable> visited = new HashSet<>();   // To prevent infinite loop
+        Queue<Variable> queue = new LinkedList<>();// for BFS
+
+        queue.offer(startVariable); // start with the variable we want to find its ancestors
+        visited.add(startVariable);  // mark it as visited
+
+        while (!queue.isEmpty()) {
+            Variable currentNode = queue.poll(); // pop the first element from the queue
+            ancestors.add(currentNode); // add it to the ancestors set. In another implementation, you can also not add it.
+
+            // Store the current node as definition to get its parents
+            Definition currentDefinition = null;
+            for (Definition def : this.getDefinitions()) {
+                if (def.getName().equals(currentNode.getName())) {
+                    currentDefinition = def;
+                    break;
+                }
+            }
+
+            if (currentDefinition != null) {
+                // go through all the parents of the current node
+                for (String parentName : currentDefinition.getParents()) {
+                    Variable parentVariable = variableMap.get(parentName);
+                    // check if the parent variable is not null and not visited
+                    if (parentVariable != null && visited.add(parentVariable)) {
+                        queue.offer(parentVariable);// add the parent to the queue
+                    }
+                }
+            }
+        }
+
+        return ancestors.stream()
+                .map(Variable::getName)
+                .collect(Collectors.toList()); // Convert to a list of names
+    }
 
 }

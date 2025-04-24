@@ -11,6 +11,10 @@ public class Factor {
     private final List<Variable> _domain;
     private final Map<Map<String, String>, Double> _values;
 
+
+    // This constructor is used to create a Factor from a Definition object and a BayesianNetwork object.
+    // It initializes the domain of the factor and populates the values based on the definition.
+    // this constructor is used when creating factors at the beginning of algorithm 2.
     public Factor(Definition definition, BayesianNetwork network) {
 
         // Adding the Variable of the factor, itself to the domain
@@ -48,6 +52,13 @@ public class Factor {
         _values = Collections.unmodifiableMap(values);
     }
 
+    // This constructor is used to create a Factor with a specific domain and values.
+    // We use this constructor when we want to create a factor with a specific domain and values.
+    private Factor(List<Variable> domain, Map<Map<String, String>, Double> values) {
+        _domain = List.copyOf(domain);
+        _values = Map.copyOf(values);
+    }
+
     public List<Variable> getDomain() {return _domain;}
     public Map<Map<String, String>, Double> getValues() {return _values;}
 
@@ -68,51 +79,41 @@ public class Factor {
         return value;
     }
 
-//    @Override
-//    public String toString() {
-//        StringBuilder sb = new StringBuilder();
-//        sb.append("Factor [Domain: ");
-//        if (_domain.isEmpty()) {
-//            sb.append("None");
-//        } else {
-//            // Sort domain variables alphabetically for consistent printing
-//            List<Variable> sortedDomain = new ArrayList<>(_domain);
-//            sortedDomain.sort(Comparator.comparing(Variable::getName));
-//            sb.append(sortedDomain.stream().map(Variable::getName).collect(Collectors.joining(", ")));
-//        }
-//        sb.append("]\n");
-//
-//        // Sort value entries for consistent printing
-//        List<Map.Entry<Map<String, String>, Double>> sortedValues = new ArrayList<>(_values.entrySet());
-//        // Sort entries based on assignment keys (alphabetical by variable name, then by value)
-//        sortedValues.sort((entry1, entry2) -> {
-//            Map<String, String> assign1 = entry1.getKey();
-//            Map<String, String> assign2 = entry2.getKey();
-//            List<String> varNames = new ArrayList<>(assign1.keySet());
-//            varNames.sort(Comparator.naturalOrder()); // Sort variable names
-//
-//            for(String varName : varNames) {
-//                String val1 = assign1.get(varName);
-//                String val2 = assign2.get(varName);
-//                int cmp = val1.compareTo(val2);
-//                if (cmp != 0) return cmp;
-//            }
-//            return 0; // Should not happen if assignments are distinct and cover the same variables
-//        });
-//
-//
-//        for (Map.Entry<Map<String, String>, Double> entry : sortedValues) {
-//            sb.append("  Assignment: {");
-//            // Sort the assignment map keys for consistent printing
-//            List<String> assignmentVarNames = new ArrayList<>(entry.getKey().keySet());
-//            assignmentVarNames.sort(Comparator.naturalOrder());
-//            sb.append(assignmentVarNames.stream()
-//                    .map(varName -> varName + "=" + entry.getKey().get(varName))
-//                    .collect(Collectors.joining(", ")));
-//            sb.append("} -> ").append(String.format("%.5f", entry.getValue())).append("\n");
-//        }
-//        return sb.toString();
-//    }
+    public Factor restrict(String evidenceVariable, String evidenceValue) {
+        Objects.requireNonNull(evidenceVariable, "Evidence variable name cannot be null");
+        Objects.requireNonNull(evidenceValue, "Evidence value cannot be null");
+
+        // Check if the evidence variable is actually in this factor's domain
+        boolean variableInDomain = false;
+        for (Variable var : _domain) {
+            if (var.getName().equals(evidenceVariable)) {
+                variableInDomain = true;
+                if (!var.getOutcomes().contains(evidenceValue)) {
+                    System.err.println("Warning: Evidence value '" + evidenceValue + "' is not a valid outcome for variable '" + evidenceVariable + "'. Restriction might result in an empty factor.");
+                }
+                break;
+            }
+        }
+
+        // If the variable is not in the domain, the evidence doesn't affect this factor
+        if (!variableInDomain) {
+            return this; // The original factor unchanged
+        }
+
+        // Filter the values map to keep only rows matching the evidence
+        Map<Map<String, String>, Double> restrictedValues = new HashMap<>();
+        for (Map.Entry<Map<String, String>, Double> entry : _values.entrySet()) {
+            Map<String, String> assignment = entry.getKey();
+            // Check if the assignment for the evidence variable matches the observed value
+            if (evidenceValue.equals(assignment.get(evidenceVariable))) {
+                // Keep this row (assignment and its probability)
+                restrictedValues.put(assignment, entry.getValue());
+            }
+        }
+        // Create and return a new Factor with the same domain but restricted values
+        // Using the private constructor that accepts the final domain and values
+        return new Factor(_domain, restrictedValues);
+    }
 
     @Override
     public String toString() {
@@ -220,7 +221,5 @@ public class Factor {
 
         return sb.toString();
     }
-
-
 
 }
