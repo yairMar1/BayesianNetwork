@@ -1,77 +1,78 @@
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Algorithm2 {
 
-    // Static counters for operations
+    //TODO: 1. Understand which variables are not relevant to the query (as written on page 91)
+    //TODO: 2. Prepare the factors from the Maps that are passed to the function
+    //TODO: 3. Making a loop that goes through all the hidden variables.
+    //TODO: 4. Gathering all the factors that have the hidden variable in them.
+    //TODO: 5. Doing a join on them. And a new factor is created.
+    //TODO: 6. The hidden variable is hidden in the last factor that remains.
+    //TODO: 7. Finally, normalization is done for the requested query variable.
+
     private static int _numberOfMultiplications = 0;
     private static int _numberOfAdditions = 0;
 
-    // Getters for counters
     public static int get_numberOfAdditions() {
         return _numberOfAdditions;
     }
-
     public static int get_numberOfMultiplications() {
         return _numberOfMultiplications;
     }
 
-    // Reset counters before each query calculation
+    // Reset the counters for another query
     private static void resetCounters() {
         _numberOfAdditions = 0;
         _numberOfMultiplications = 0;
     }
 
-    public static String calculateProbability(Map<String, String> requestedQueryAssignment,
-                                              Map<String, List<ProbabilityEntry>> queryMap, // Contains the query variable(s)
-                                              Map<String, List<ProbabilityEntry>> evidenceMap, // Contains evidence variables and their observed values
-                                              Map<String, List<ProbabilityEntry>> hiddenMap, // Contains hidden variables
-                                              BayesianNetwork network) throws IOException {
+    public static String calculateProbability(Map<String, String> requestedQueryAssignment, Map<String, List<ProbabilityEntry>> queryMap, Map<String, List<ProbabilityEntry>> evidenceMap, Map<String, List<ProbabilityEntry>> hiddenMap, BayesianNetwork network) throws IOException {
 
         resetCounters(); // Reset counters for this specific query
 
-        // --- שלבים 1-2 --- (זהים)
-        // ... קבלת שם משתנה השאילתה, יצירת variableMap ...
+        // Map to store variable
+        // the map looks like: {varName, Variable(the object)}
         String queryVariableName = queryMap.keySet().iterator().next();
         Map<String, Variable> variableMap = network.getVariables().stream()
                 .collect(Collectors.toMap(Variable::getName, v -> v));
 
-        // יצירת מפת העדויות - חשוב שתהיה זמינה לאורך כל הדרך
+        // Map to store the evidence
+        // the map looks like: {varName, outcome}
         final Map<String, String> evidenceAssignments = evidenceMap.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getFirst().getOutcome()));
+        //System.out.println("Evidence Assignments: " + evidenceAssignments);
 
-        // זיהוי משתנים רלוונטיים (זהה)
-        Set<String> relevantVarNames = new HashSet<>();
-        relevantVarNames.addAll(queryMap.keySet());
-        relevantVarNames.addAll(evidenceMap.keySet()); // Use evidenceMap keys which is same as evidenceAssignments keys
-        Set<String> ancestorsToCheck = new HashSet<>(relevantVarNames);
-        for(String varName : ancestorsToCheck) {
-            List<String> ancestors = network.getAncestors(varName);
-            relevantVarNames.addAll(ancestors);
+        // Identify relevant variables
+        Set<String> relevantVariable = new HashSet<>();
+
+        // Add query and evidence variables to the relevant set
+        relevantVariable.addAll(queryMap.keySet());
+        relevantVariable.addAll(evidenceMap.keySet());
+
+        // If variable is not query or evidence, he will add only if he is ancestor of the query\evidence variable
+        Set<String> ancestors = new HashSet<>(relevantVariable);
+        for(String varName : ancestors) {
+            List<String> ancestor = network.getAncestors(varName);
+            relevantVariable.addAll(ancestor);
         }
-        relevantVarNames.addAll(queryMap.keySet());
-        relevantVarNames.addAll(evidenceMap.keySet());
 
-        // יצירת פקטורים ראשוניים (זהה)
+        // Create initial factors, only from 'relevantVariable'
         List<Factor> initialFactors = new ArrayList<>();
         for (Definition definition : network.getDefinitions()) {
-            if (relevantVarNames.contains(definition.getName())) {
-                initialFactors.add(new Factor(definition, network));
+            if (relevantVariable.contains(definition.getName())) {
+                initialFactors.add(new Factor(definition, network)); //first construct at Factor class
             }
         }
 
-        List<Factor> factors;
-        // --- 3. החלת עדות (Restriction) ---
-        List<Factor> restrictedFactors = new ArrayList<>(); // רשימה חדשה לפקטורים שעברו restriction
-        for (Factor factor : initialFactors) { // initialFactors היא הרשימה המקורית של פקטורים רלוונטיים
+        // Restrict factors based on evidence
+        // Arise the factors lines that are not relevant base on the evidence we saw
+        List<Factor> restrictedFactors = new ArrayList<>();
+        for (Factor factor : initialFactors) {
             Factor currentFactor = factor;
+            // We go through all the evidence variables and try to restrict lines that are not contain the evidence outcome we saw
             for (Map.Entry<String, String> evidenceEntry : evidenceAssignments.entrySet()) {
                 currentFactor = currentFactor.restrict(evidenceEntry.getKey(), evidenceEntry.getValue());
                 if (currentFactor == null || currentFactor.getValues().isEmpty()) {
@@ -80,51 +81,56 @@ public class Algorithm2 {
                 }
             }
             if (currentFactor != null) {
-                restrictedFactors.add(currentFactor); // הוסף לרשימה החדשה
+                restrictedFactors.add(currentFactor);
             } else {
                 System.out.println("Factor for " + factor.getDomain().stream().map(Variable::getName).collect(Collectors.joining(",")) + " became empty after restriction.");
             }
         }
-        // כעת restrictedFactors מכילה את כל הפקטורים הרלוונטיים אחרי החלת העדות
 
-
-        // --- 3.5 הסרת פקטורים המכילים רק משתני עדות ---
-        List<Factor> factorsForVE = new ArrayList<>(); // רשימה חדשה עבור לולאת VE
-        Set<String> evidenceVarNames = evidenceAssignments.keySet();
-        System.out.println("Filtering factors post-restriction. Evidence vars: " + evidenceVarNames);
-        for(Factor f : restrictedFactors) { // עבוד על הרשימה שעברה restriction
-            Set<String> factorDomainNames = f.getDomain().stream()
-                    .map(Variable::getName)
-                    .collect(Collectors.toSet());
-
-            // בדוק אם כל המשתנים בדומיין של הפקטור הם חלק מהעדות
-            if (evidenceVarNames.containsAll(factorDomainNames)) {
-                // אם כן, הפקטור הזה מייצג P(subset_of_evidence) או P(evidence_val)
-                // והוא מיותר להמשך החישוב של P(Query|Evidence)
-                System.out.println("Removing factor post-restriction as its domain only contains evidence: [" + String.join(",", factorDomainNames) + "]");
-                // אל תוסיף את הפקטור הזה לרשימה עבור VE
-            } else {
-                factorsForVE.add(f); // שמור את הפקטור הזה עבור לולאת VE
+        // Eliminate factors with less than 2 rows
+        for (int i = 0; i < restrictedFactors.size(); i++) {
+            Factor factor = restrictedFactors.get(i);
+            int counter = 0;
+            for (Map.Entry<Map<String, String>, Double> entry : factor.getValues().entrySet()) {
+                counter++;
+            }
+            if(counter < 2){
+                restrictedFactors.remove(factor);
+                // Because we removed an element, we need to adjust the index.
+                // all the elements after the removed element will shift left
+                i--;
             }
         }
-        // השתמש ברשימה המסוננת factorsForVE להמשך
-        factors = factorsForVE; // עדכן את המשתנה factors הראשי
+        for (Factor factor : restrictedFactors) {
+            System.out.println(factor);
+        }
+        //TODO: explain - till now we have list of factors ('restrictedFactors').
+        //      These factors were created only from variables desired by the algorithm.
+        //      And rows were removed if necessary (rows that did not match the observed evidence variables were removed).
+        //      And we removed factors that their size is less than 2.
 
+        // Rename the List that contains the desired factors
+        // We will work on the list 'factors' from now on
+        List<Factor> factors;
+        factors = restrictedFactors;
 
-        // --- 4. לולאת Variable Elimination ---
+        // Making list of hidden variables' ordered by their names we want to eliminate
         List<String> hiddenVariableNames = hiddenMap.keySet().stream()
-                .filter(relevantVarNames::contains)
-                .filter(hVar -> !evidenceAssignments.containsKey(hVar)) // Don't eliminate evidence vars
+                .filter(relevantVariable::contains)
+                .filter(hVar -> !evidenceAssignments.containsKey(hVar)) // Ensure we don't include evidence var
                 .collect(Collectors.toList());
         Collections.sort(hiddenVariableNames);
         System.out.println("Elimination Order: " + hiddenVariableNames);
 
+        // loop through the factors that contain hidden variables
+        // and made a join on them
         for (String hiddenVarName : hiddenVariableNames) {
             Variable hiddenVar = variableMap.get(hiddenVarName);
             if (hiddenVar == null) continue;
 
             System.out.println("\n--- Eliminating: " + hiddenVarName + " ---");
 
+            // Filter factors to join and those to keep
             List<Factor> factorsToJoin = new ArrayList<>();
             List<Factor> factorsToKeep = new ArrayList<>();
             for (Factor f : factors) {
@@ -135,10 +141,10 @@ public class Algorithm2 {
 
             if (factorsToJoin.isEmpty()) continue;
 
-            Factor finalJoinedFactor; // הפקטור לאחר ה-join (אם בוצע)
+            Factor newFactor;
 
             if (factorsToJoin.size() == 1) {
-                finalJoinedFactor = factorsToJoin.getFirst();
+                newFactor = factorsToJoin.getFirst();
                 System.out.println("Only one factor contains " + hiddenVarName + ". No join needed.");
             } else {
                 System.out.println("Factors to join for " + hiddenVarName + ": " +
@@ -146,8 +152,10 @@ public class Algorithm2 {
                                 .map(f -> "[" + f.getDomain().stream().map(Variable::getName).collect(Collectors.joining(",")) + "] (Size: " + f.getValues().size() + ")")
                                 .collect(Collectors.joining(", ")));
 
-                // ב. ביצוע Join בזוגות לפי הכללים, תוך העברת העדות
                 List<Factor> currentFactorsToJoin = new ArrayList<>(factorsToJoin);
+                // Join operation will continue until only one factor remains
+                // Sort the factors to join by size, then by domain name sum (ASCII).
+                // All the sorts are in ascending order. From the smallest to the largest.
                 while (currentFactorsToJoin.size() > 1) {
                     currentFactorsToJoin.sort(Comparator
                             .<Factor, Integer>comparing(f -> f.getValues().size())
@@ -158,43 +166,51 @@ public class Algorithm2 {
                     Factor factor2 = currentFactorsToJoin.get(1);
                     System.out.println("Joining pair: [" + factor1.getDomain().stream().map(Variable::getName).collect(Collectors.joining(",")) + "] and [" + factor2.getDomain().stream().map(Variable::getName).collect(Collectors.joining(",")) + "]");
 
-                    // *** שינוי: העברת evidenceAssignments ***
-                    Factor joinedPairFactor = joinTwoFactors(factor1, factor2, variableMap, evidenceAssignments);
+                    // Call to helper method to join two factors
+                    Factor joinedFactor = joinTwoFactors(factor1, factor2, evidenceAssignments);
 
+                    // Update the list of factors to join
                     currentFactorsToJoin.remove(factor1);
                     currentFactorsToJoin.remove(factor2);
-                    currentFactorsToJoin.add(joinedPairFactor);
-                    System.out.println("Intermediate join result size: " + joinedPairFactor.getValues().size()); // This size should now be smaller!
+                    currentFactorsToJoin.add(joinedFactor);
+                    System.out.println("Intermediate join result size: " + joinedFactor.getValues().size()); // This size should now be smaller!
                 }
-                finalJoinedFactor = currentFactorsToJoin.getFirst();
-                System.out.println("Final Joined Factor for " + hiddenVarName + " (after pairwise joins):\n" + finalJoinedFactor);
+                // After the loop, only one factor remains in 'currentFactorsToJoin' with the current hidden variable
+                newFactor = currentFactorsToJoin.getFirst();
+                System.out.println("Final Joined Factor for " + hiddenVarName + " (after pairwise joins):\n" + newFactor);
             }
 
-
-            // ג. ביצוע Sum out
-            Factor summedOutFactor = sumOut(finalJoinedFactor, hiddenVar, variableMap); // SumOut לא צריך את העדות ישירות
+            // Eliminate the hidden variable from the new factor
+            // We will sum out the correct rows
+            Factor summedOutFactor = sumOut(newFactor, hiddenVar, variableMap);
             System.out.println("Factor after summing out " + hiddenVarName + ":\n" + summedOutFactor);
 
-            // ד. עדכון רשימת הפקטורים
             factors = factorsToKeep;
-            if (!summedOutFactor.getValues().isEmpty()) {
-                factors.add(summedOutFactor);
+
+            // Check if the summed out factor is empty or has one row
+            // If it is, I can discard this factor
+            int counter = 0;
+            for (Double factorValue : summedOutFactor.getValues().values()){
+                counter++;
             }
+            if(counter > 1){
+                factors.add(summedOutFactor);// Add the summed out factor to the list of factors to keep
+            }
+
         }
 
-        // --- 5. עיבוד סופי ---
+        // Handle the factors that remain after all hidden variables have been eliminated
         System.out.println("\n--- After Elimination ---");
         System.out.println("Remaining Factors (" + factors.size() + "):");
-        factors.forEach(f -> System.out.println(f));
+        factors.forEach(System.out::println);
 
         Factor finalFactor;
         if (factors.isEmpty()) {
-            // ... טיפול במקרה ריק ...
             Variable queryVar = variableMap.get(queryVariableName);
             Map<Map<String, String>, Double> zeroValue = Map.of(Map.of(queryVariableName, requestedQueryAssignment.get(queryVariableName)), 0.0);
             finalFactor = new Factor(List.of(queryVar), zeroValue);
 
-        } else {
+        } else { // The factors need to contain only the query variable
             List<Factor> remainingFactors = new ArrayList<>(factors);
             while (remainingFactors.size() > 1) {
                 remainingFactors.sort(Comparator
@@ -205,8 +221,7 @@ public class Algorithm2 {
                 Factor f2 = remainingFactors.get(1);
                 System.out.println("Final join: [" + f1.getDomain().stream().map(Variable::getName).collect(Collectors.joining(",")) + "] and [" + f2.getDomain().stream().map(Variable::getName).collect(Collectors.joining(",")) + "]");
 
-                // *** שינוי: העברת evidenceAssignments ***
-                Factor joined = joinTwoFactors(f1, f2, variableMap, evidenceAssignments);
+                Factor joined = joinTwoFactors(f1, f2, evidenceAssignments);
 
                 remainingFactors.remove(f1);
                 remainingFactors.remove(f2);
@@ -217,14 +232,13 @@ public class Algorithm2 {
 
         System.out.println("Final Factor (Pre-Normalization):\n" + finalFactor);
 
-        // --- 6. נורמליזציה --- (ספירת החיבורים כאן נשארת זהה)
+        // Normalize the final factor
         Factor normalizedFactor = normalizeFactor(finalFactor);
         System.out.println("Normalized Final Factor:\n" + normalizedFactor);
 
-        // --- 7. חילוץ התוצאה --- (זהה לקוד המתוקן הקודם)
-        Map<String, String> finalAssignment = new HashMap<>();
-        finalAssignment.putAll(requestedQueryAssignment);
-        // evidenceAssignments כבר זמין
+        // Store the query variable we need to look for, and the evidence variables
+        Map<String, String> finalAssignment = new HashMap<>(requestedQueryAssignment);
+
         for (Variable v : normalizedFactor.getDomain()) {
             String varName = v.getName();
             if (evidenceAssignments.containsKey(varName)) {
@@ -242,47 +256,42 @@ public class Algorithm2 {
             if (!finalAssignment.keySet().equals(finalFactorDomainNames)) {
                 throw new IllegalStateException("Constructed final assignment keys do not match normalized factor domain keys. AssignKeys: " + finalAssignment.keySet() + ", FactorKeys: " + finalFactorDomainNames);
             }
-            resultProbability = normalizedFactor.getValue(finalAssignment); // getValue should still work
+            resultProbability = normalizedFactor.getValue(finalAssignment);
         } catch (IllegalArgumentException | IllegalStateException e) {
             System.err.println("Error extracting final probability: " + e.getMessage());
             resultProbability = 0.0;
         }
 
-
-        // --- 8. עיצוב הפלט ---
-        String resultString = String.format(Locale.US, "%.5f,%d,%d",
+        // Return the result as a formatted string
+        return String.format(Locale.US, "%.5f,%d,%d",
                 resultProbability,
                 get_numberOfAdditions(),
                 get_numberOfMultiplications());
-        return resultString;
     }
 
     /**Helper methods*/
+    private static Factor joinTwoFactors(Factor f1, Factor f2, Map<String, String> evidenceAssignments) {
 
-    // --- Helper Methods ---
-    private static Factor joinTwoFactors(Factor f1, Factor f2, Map<String, Variable> variableMap, Map<String, String> evidenceAssignments) {
+        // The new domain is the union of the two factors' domains
         Set<Variable> combinedDomainSet = new HashSet<>(f1.getDomain());
         combinedDomainSet.addAll(f2.getDomain());
+
         List<Variable> newDomain = new ArrayList<>(combinedDomainSet);
-        newDomain.sort(Comparator.comparing(Variable::getName));
+        newDomain.sort(Comparator.comparing(Variable::getName)); // I don't have to sort, I prefer to have order in the factor.
+        Map<Map<String, String>, Double> newValues = new HashMap<>(); // Store the new values of the factor
 
-        Map<Map<String, String>, Double> newValues = new HashMap<>();
+        // Call to helper function to generate all possible combination for the new domain
+        List<Map<String, String>> AllCombination = generateAssignments(newDomain, evidenceAssignments);
 
-        // *** שינוי: קריאה ל-generateAssignments עם העדות ***
-        List<Map<String, String>> assignmentsToConsider = generateAssignments(newDomain, evidenceAssignments);
-
-        // חישוב ההסתברות רק להשמות הרלוונטיות (אלו שתואמות לעדות)
-        for (Map<String, String> relevantAssignment : assignmentsToConsider) {
+        for (Map<String, String> rowOfCombination : AllCombination) {
             try {
-                double prob1 = f1.getValue(relevantAssignment);
-                double prob2 = f2.getValue(relevantAssignment);
+                double prob1 = f1.getValue(rowOfCombination);
+                double prob2 = f2.getValue(rowOfCombination);
 
-                // אם אחת ההסתברויות היא 0, גם התוצאה 0, אך עדיין נספור את הכפל
-                // אלא אם נרצה אופטימיזציה לא לספור כפל ב-0. נשאיר את הספירה כרגע.
                 double combinedProbability = prob1 * prob2;
-                _numberOfMultiplications++; // ספירת כפל עבור כל שורה *רלוונטית* בפקטור החדש
+                _numberOfMultiplications++;
 
-                newValues.put(Collections.unmodifiableMap(new HashMap<>(relevantAssignment)), combinedProbability);
+                newValues.put(Map.copyOf(rowOfCombination), combinedProbability);
 
             } catch (IllegalArgumentException e) {
                 System.err.println("Error during joinTwoFactors: " + e.getMessage());
@@ -291,7 +300,6 @@ public class Algorithm2 {
         }
         return new Factor(newDomain, newValues);
     }
-
 
     /**
      * Eliminates (sums out) a variable from a factor.
@@ -304,15 +312,13 @@ public class Algorithm2 {
     private static Factor sumOut(Factor factor, Variable varToEliminate, Map<String, Variable> variableMap) {
         String varNameToEliminate = varToEliminate.getName();
 
-        // 1. Determine the new domain (old domain minus the variable to eliminate)
+        // Create a new domain excluding the variable to be eliminated
         List<Variable> newDomain = factor.getDomain().stream()
                 .filter(v -> !v.getName().equals(varNameToEliminate))
                 .collect(Collectors.toList());
-        // Ensure consistent order
+        // Ensure consistent order, like we kept in the join operation
         newDomain.sort(Comparator.comparing(Variable::getName));
 
-
-        // 2. Group assignments and sum probabilities
         Map<Map<String, String>, Double> newValues = new HashMap<>();
 
         // Group entries by assignment *excluding* the variable to be eliminated
@@ -328,34 +334,32 @@ public class Algorithm2 {
                 newAssignmentKey.put(v.getName(), originalAssignment.get(v.getName()));
             }
             // Make the key immutable for map usage
+            // This map contain all the variables that are not the variable we want to eliminate, and their values
             Map<String, String> immutableKey = Collections.unmodifiableMap(newAssignmentKey);
 
             // Add the probability to the list for this group
             groupedProbabilities.computeIfAbsent(immutableKey, k -> new ArrayList<>()).add(probability);
         }
 
-        // 3. Calculate the summed probability for each group
+        // Calculate the summed probability for each group
         for (Map.Entry<Map<String, String>, List<Double>> groupEntry : groupedProbabilities.entrySet()) {
             Map<String, String> assignment = groupEntry.getKey();
-            List<Double> probsToSum = groupEntry.getValue();
+            List<Double> probabilitiesToSum = groupEntry.getValue();
 
             double sum = 0.0;
             int additionsForThisGroup = 0;
-            for (double p : probsToSum) {
+            for (double p : probabilitiesToSum) {
                 sum += p;
                 if (additionsForThisGroup > 0) { // Count additions after the first value
                     _numberOfAdditions++;
                 }
                 additionsForThisGroup++;
             }
-            newValues.put(assignment, sum); // Store the summed probability
+            newValues.put(assignment, sum);
         }
 
-
-        // Use the private Factor constructor
         return new Factor(newDomain, newValues);
     }
-
 
     /**
      * Normalizes the probabilities in a factor so they sum to 1.
@@ -367,7 +371,7 @@ public class Algorithm2 {
         double totalProbability = 0.0;
         int additionsForSum = 0;
 
-        // 1. Calculate the sum of all probabilities in the factor
+        // Calculate the sum of all probabilities in the factor
         for (double prob : factor.getValues().values()) {
             totalProbability += prob;
             if (additionsForSum > 0) { // Count additions after the first value
@@ -375,23 +379,20 @@ public class Algorithm2 {
             }
             additionsForSum++;
         }
-
+        //This map Will store the normalized values
         Map<Map<String, String>, Double> normalizedValues = new HashMap<>();
 
-        // 2. Handle sum of zero (avoid division by zero, indicates contradiction or empty factor)
-        if (Math.abs(totalProbability) < 1e-9) { // Use tolerance for floating point
-            System.err.println("Warning: Total probability is zero during normalization. Returning factor with original (zero) values.");
-            // Return a factor with zeros, or the original factor if preferred
+        // Avoid division by zero
+        if (Math.abs(totalProbability) < 1e-9) {
+            System.err.println("Warning: Total probability is zero during normalization. Returning factor with original values.");
             return new Factor(factor.getDomain(), factor.getValues()); // Return original (likely all zeros)
         }
 
-        // 3. Divide each probability by the total sum
+        // Divide each probability by the total sum
         for (Map.Entry<Map<String, String>, Double> entry : factor.getValues().entrySet()) {
             normalizedValues.put(entry.getKey(), entry.getValue() / totalProbability);
-            // Note: Normalization division usually isn't counted in VE complexity additions/multiplications.
         }
 
-        // Use the private Factor constructor
         return new Factor(factor.getDomain(), normalizedValues);
     }
 
@@ -400,51 +401,59 @@ public class Algorithm2 {
      * Example: Variables A={T,F}, B={X,Y} -> [{A=T,B=X}, {A=T,B=Y}, {A=F,B=X}, {A=F,B=Y}]
      *
      * @param domain List of Variable objects.
-     * @return A list of maps, where each map represents a complete assignment.
+     * @return A list of maps, where each map represents a combination for those domains.
      */
     private static List<Map<String, String>> generateAssignments(List<Variable> domain, Map<String, String> evidenceAssignments) {
         List<Map<String, String>> assignments = new ArrayList<>();
-        if (domain == null) { // בדיקה נוספת
+        if (domain == null) {
             return assignments;
         }
-        // *** שינוי: קריאה לפונקציה הרקורסיבית עם העדות ***
+
         generateAssignmentsRecursive(domain, 0, new HashMap<>(), assignments, evidenceAssignments);
         return assignments;
     }
 
-    // *** שינוי: חתימה כוללת evidenceAssignments ***
+    /**
+     * Recursive helper method to generate all possible assignments for a given list of variables (domain).
+     *
+     * @param domain            List of Variable objects.
+     * @param varIndex          Current index in the domain list.
+     * @param currentAssignment Current assignment being built.
+     * @param allAssignments    List to store all generated assignments.
+
+     * Recursive construction of all possibilities for specific variables:
+     * currentAssignment - represents a specific combination for the given variables.
+     * allAssignments - represents the list of combinations for the given variables.
+     */
     private static void generateAssignmentsRecursive(List<Variable> domain, int varIndex,
                                                      Map<String, String> currentAssignment,
                                                      List<Map<String, String>> allAssignments,
                                                      Map<String, String> evidenceAssignments) {
+        // Base case: if all variables have been assigned, add the current combination to the list
         if (varIndex == domain.size()) {
-            allAssignments.add(Collections.unmodifiableMap(new HashMap<>(currentAssignment)));
+            allAssignments.add(Map.copyOf(currentAssignment));
             return;
         }
 
         Variable currentVar = domain.get(varIndex);
         String currentVarName = currentVar.getName();
 
-        // *** שינוי: בדיקה אם המשתנה הנוכחי הוא משתנה עדות ***
+        // Check if the current variable is an evidence variable. It has a fixed value.
         if (evidenceAssignments.containsKey(currentVarName)) {
             String fixedValue = evidenceAssignments.get(currentVarName);
-            // בדוק אם הערך הקבוע חוקי עבור המשתנה (בדרך כלל כן, אבל טוב לבדוק)
-            if (currentVar.getOutcomes().contains(fixedValue)) {
+            if (currentVar.getOutcomes().contains(fixedValue)) { // Check if the fixed value is valid for the current variable
                 currentAssignment.put(currentVarName, fixedValue);
                 generateAssignmentsRecursive(domain, varIndex + 1, currentAssignment, allAssignments, evidenceAssignments);
                 currentAssignment.remove(currentVarName); // Backtrack
             } else {
-                // אם הערך בעדות לא חוקי למשתנה זה, זה מצב שגיאה או שמשהו השתבש
-                System.err.println("Error: Evidence value '" + fixedValue + "' for variable '" + currentVarName + "' is not among its possible outcomes: " + currentVar.getOutcomes());
-                // במקרה כזה, לא נוצרות השמות שתלויות בערך לא חוקי זה.
+                throw new IllegalArgumentException("Error: Evidence value '" + fixedValue + "' for variable '" + currentVarName + "' is not among its possible outcomes: " + currentVar.getOutcomes());
             }
         } else {
-            // אם זה לא משתנה עדות, עבור על כל התוצאות האפשריות שלו כרגיל
+            // If the variable is not an evidence variable, generate all possible outcomes
             if (currentVar.getOutcomes() == null || currentVar.getOutcomes().isEmpty()) {
-                System.err.println("Warning: Variable " + currentVar.getName() + " has no outcomes during assignment generation.");
-                generateAssignmentsRecursive(domain, varIndex + 1, currentAssignment, allAssignments, evidenceAssignments); // Continue without assigning this var? Or throw error?
-                return;
+                throw new IllegalStateException("Error: Variable '" + currentVar.getName() + "' has no outcomes defined. Cannot generate assignments.");
             }
+            // Iterate through all possible outcomes for the current variable
             for (String outcome : currentVar.getOutcomes()) {
                 currentAssignment.put(currentVarName, outcome);
                 generateAssignmentsRecursive(domain, varIndex + 1, currentAssignment, allAssignments, evidenceAssignments);

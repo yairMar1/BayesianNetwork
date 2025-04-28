@@ -114,7 +114,8 @@ public class Main {
                                 break;
                             case "3":
                                 System.out.println("Using Algorithm 3");
-                                //String result3 = Algorithm3.calculateProbability(requestedQueryAssignment, queryMap, evidenceMap, hiddenMap, network);
+                                String result3 = Algorithm3.calculateProbability(requestedQueryAssignment, queryMap, evidenceMap, hiddenMap, network);
+                                ans.append(result3).append("\n");
                                 break;
                             default:
                                 System.out.println("Invalid algorithm specified: " + algorithm);

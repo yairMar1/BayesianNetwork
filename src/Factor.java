@@ -52,44 +52,25 @@ public class Factor {
     }
 
     // This constructor is used to create a Factor with a specific domain and values.
-    // We use this constructor when we want to create a factor with a specific domain and values.
-//    private Factor(List<Variable> domain, Map<Map<String, String>, Double> values) {
-//        _domain = List.copyOf(domain);
-//        _values = Map.copyOf(values);
-//    }
-
-    // Constructor used by Algorithm2 helpers
     Factor(List<Variable> domain, Map<Map<String, String>, Double> values) {
-        this._domain = List.copyOf(Objects.requireNonNull(domain));
+        _domain = List.copyOf(Objects.requireNonNull(domain));
         // Ensure keys in values map are immutable if they aren't already
         Map<Map<String, String>, Double> immutableValues = new HashMap<>();
         for (Map.Entry<Map<String, String>, Double> entry : values.entrySet()) {
             immutableValues.put(Collections.unmodifiableMap(new HashMap<>(entry.getKey())), entry.getValue());
         }
-        this._values = Collections.unmodifiableMap(immutableValues);
+        _values = Collections.unmodifiableMap(immutableValues);
     }
 
     public List<Variable> getDomain() {return _domain;}
     public Map<Map<String, String>, Double> getValues() {return _values;}
 
-//    public double getValue(Map<String, String> assignment) {
-//        Map<String, String> assignmentForDomain = new HashMap<>();
-//        for(Variable var : _domain) {
-//            String assignedValue = assignment.get(var.getName());
-//            if (assignedValue == null) {// if the variable is not in the input assignment
-//                throw new IllegalArgumentException("Assignment is incomplete for factor domain in getValue. Missing: " + var.getName());
-//            }
-//            assignmentForDomain.put(var.getName(), assignedValue);
-//        }
-//
-//        Double value = _values.get(Collections.unmodifiableMap(assignmentForDomain));
-//        if (value == null) {// if the combination is not found in the factor
-//            throw new IllegalStateException("Value not found for complete domain assignment in Factor.getValue. Assignment: " + assignmentForDomain);
-//        }
-//        return value;
-//    }
-
+    // This method retrieves the probability value for a given assignment of variable values.
+    // We get a map with values, and we go over the values of the domain of our factor. And we return the desired value.
+    // In many cases, not all the values in the new factor match the values in the old factor,
+    // so we go over the values in the old factor and try to extract the desired probability from them
     public double getValue(Map<String, String> assignment) {
+        // The map will contain the vars (and their value) we want to know the probability of
         Map<String, String> assignmentForDomain = new HashMap<>();
         for(Variable var : _domain) {
             String assignedValue = assignment.get(var.getName());
@@ -97,16 +78,14 @@ public class Factor {
                 throw new IllegalArgumentException("Assignment is incomplete for factor domain in getValue. Missing: " + var.getName() + " in assignment " + assignment);
             }
             if (!var.getOutcomes().contains(assignedValue)) {
-                System.err.println("Warning: Invalid value '" + assignedValue + "' requested for variable '" + var.getName() + "'. Expected one of: " + var.getOutcomes());
-                return 0.0;
+                throw new IllegalArgumentException("Warning: Invalid value '" + assignedValue + "' requested for variable '" + var.getName() + "'. Expected one of: " + var.getOutcomes());
             }
             assignmentForDomain.put(var.getName(), assignedValue);
         }
-        Map<String, String> lookupKey = Collections.unmodifiableMap(assignmentForDomain);
-        Double value = _values.get(lookupKey);
+        Double value = _values.get(assignmentForDomain);
 
         if (value == null) {
-            System.out.println("DEBUG: getValue returning 0.0 for missing key " + lookupKey + " in factor over " + _domain.stream().map(Variable::getName).collect(Collectors.joining(",")));
+            System.out.println("DEBUG: getValue returning 0.0 for missing key " + assignmentForDomain + " in factor over " + _domain.stream().map(Variable::getName).collect(Collectors.joining(",")));
             return 0.0;
         }
         return value;
