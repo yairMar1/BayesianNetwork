@@ -77,8 +77,6 @@ public class Main {
                     System.out.println("----------------------- Start of query " + i +" -----------------------------------");
                     System.out.println("Second option - the more complex query. " + queryLine);
 
-                    // TODO: If I the query is a line from CPT - return without doing any calculation
-
                     /**
                      * Here I send the query line to the function that will classify the variables
                      * The function will return a list of maps.

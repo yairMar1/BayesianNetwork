@@ -71,7 +71,7 @@ public class Algorithm3 {private static int _numberOfMultiplications = 0;
             }
         }
 
-        System.out.println("Processing query with variable elimination algorithm.");
+        System.out.println("Processing query with Heuristic variable elimination algorithm.");
         // Identify relevant variables
         Set<String> relevantVariable = new HashSet<>();
 
