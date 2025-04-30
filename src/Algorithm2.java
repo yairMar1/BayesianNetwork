@@ -43,8 +43,40 @@ public class Algorithm2 {
         final Map<String, String> evidenceAssignments = evidenceMap.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getFirst().getOutcome()));
-        //System.out.println("Evidence Assignments: " + evidenceAssignments);
 
+        // Store the query variable in the Definition object
+        Definition queryDefinition = network.getDefinitions().stream()
+                .filter(def -> def.getName().equals(queryVariableName))
+                .findFirst()
+                .orElse(null);
+
+        if (queryDefinition != null) {
+            // Set of parent names for the query variable
+            Set<String> parentNames = new HashSet<>(queryDefinition.getParents());
+
+            Set<String> evidenceVarNames = evidenceAssignments.keySet();
+
+            // If the value is equal,we can go directly in the query variable's CPT.
+            if (parentNames.equals(evidenceVarNames)) {
+                System.out.println("Optimization: Evidence matches parents for " + queryVariableName + ". Attempting direct CPT lookup.");
+
+                for (ProbabilityEntry entry : queryDefinition.getProbabilityList()) {
+                    // Check if the outcome matches
+                    if (entry.getOutcome().equals(requestedQueryAssignment.get(queryVariableName))) {
+                        // Check if the parent status in the entry matches the given evidence
+                        if (entry.getStatusParent().equals(evidenceAssignments)) {
+                            // Found the exact entry!
+                            double directProbability = entry.getProbability();
+                            System.out.println("Direct CPT lookup successful. Probability = " + directProbability);
+                            // Return the result immediately, 0 additions and multiplications for this path
+                            return String.format(Locale.US, "%.5f,0,0", directProbability);
+                        }
+                    }
+                }
+            }
+        }
+
+        System.out.println("Processing query with variable elimination algorithm.");
         // Identify relevant variables
         Set<String> relevantVariable = new HashSet<>();
 
