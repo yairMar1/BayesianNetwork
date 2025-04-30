@@ -30,7 +30,7 @@ public class Algorithm2 {
 
     public static String calculateProbability(Map<String, String> requestedQueryAssignment, Map<String, List<ProbabilityEntry>> queryMap, Map<String, List<ProbabilityEntry>> evidenceMap, Map<String, List<ProbabilityEntry>> hiddenMap, BayesianNetwork network) throws IOException {
 
-        resetCounters(); // Reset counters for this specific query
+        resetCounters();
 
         // Map to store variable
         // the map looks like: {varName, Variable(the object)}

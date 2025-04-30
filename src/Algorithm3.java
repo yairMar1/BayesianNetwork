@@ -2,7 +2,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Algorithm3 {private static int _numberOfMultiplications = 0;
+public class Algorithm3 {
+    private static int _numberOfMultiplications = 0;
     private static int _numberOfAdditions = 0;
 
     public static int get_numberOfAdditions() {
@@ -25,7 +26,7 @@ public class Algorithm3 {private static int _numberOfMultiplications = 0;
                                               BayesianNetwork network
                                               ) throws IOException {
 
-        resetCounters(); // Reset counters for this specific query
+        resetCounters();
 
         // Map to store variable
         // the map looks like: {varName, Variable(the object)}
@@ -63,7 +64,7 @@ public class Algorithm3 {private static int _numberOfMultiplications = 0;
                             // Found the exact entry!
                             double directProbability = entry.getProbability();
                             System.out.println("Direct CPT lookup successful. Probability = " + directProbability);
-                            // Return the result immediately, 0 additions and multiplications for this path
+                            // Return the result immediately, 0 additions and multiplications.
                             return String.format(Locale.US, "%.5f,0,0", directProbability);
                         }
                     }
