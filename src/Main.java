@@ -11,7 +11,7 @@ import java.util.*;
 public class Main {
     public static void main(String[] args) {
 
-        String txtFilePath = "input.txt";
+        String txtFilePath = "input_for_complex_net.txt";
         System.out.println("Attempting to read text file: " + txtFilePath);
 
         String firstLine;

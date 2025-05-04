@@ -143,10 +143,10 @@ public class Algorithm3 {
         factors = restrictedFactors;
 
         // Making list of hidden variables' ordered by their names we want to eliminate
-        List<String> hiddenVariableNames = new ArrayList<>(hiddenMap.keySet().stream()
-                .filter(relevantVariable::contains)
-                .filter(hVar -> !evidenceAssignments.containsKey(hVar)) // Ensure we don't include evidence var
-                .toList());
+        Set<String> hiddenVariableNames = relevantVariable.stream()
+                .filter(varName -> !varName.equals(queryVariableName))
+                .filter(varName -> !evidenceAssignments.containsKey(varName))
+                .collect(Collectors.toSet());
 
         // loop through the factors that contain hidden variables
         // and made a join on them
@@ -273,7 +273,7 @@ public class Algorithm3 {
             if (evidenceAssignments.containsKey(varName)) {
                 finalAssignment.put(varName, evidenceAssignments.get(varName));
             } else if (!requestedQueryAssignment.containsKey(varName)) {
-                throw new IllegalStateException("Final normalized factor contains unexpected variable: " + varName);
+                //throw new IllegalStateException("Final normalized factor contains unexpected variable: " + varName);
             }
         }
         System.out.println("DEBUG: Final assignment for lookup: " + finalAssignment);
@@ -298,7 +298,7 @@ public class Algorithm3 {
                 get_numberOfMultiplications());
     }
 
-    private static String FindBestHiddenVariable(List<String> hiddenVariableNames,
+    private static String FindBestHiddenVariable(Set<String> hiddenVariableNames,
                                                  List<Factor> factors,
                                                  Map<String,Variable> variableMap,
                                                  Map<String, String> evidenceAssignments

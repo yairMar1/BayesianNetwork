@@ -51,39 +51,31 @@ public class QueryAnalysis {
 
         // Create a map to hold the definitions (CPTs) of the network
         Map<String, List<ProbabilityEntry>> queryMap = new HashMap<>();
-        for (Variable var : network.getVariables()) {
-            for (String part : queryParts) {
-                if (var.getName().contains(String.valueOf(part.charAt(0)))) {
-                    for (Definition def : network.getDefinitions()) {
-                        if (def.getName().equals(var.getName())) {
-                            queryMap.put(var.getName(), def.getProbabilityList());
-                            break;
-                        }
-                    }
-                }
-            }
+        if (queryParts.length != 1) {
+            System.err.println("Error: QueryAnalysis expects exactly one query assignment like Var=Val.");
+            return new ArrayList<>();
         }
-        //At the evidence Map, we will add the evidence variables
-        //For example: P(A=T|B=T)
-        //In this case, the evidence variable is B=T
-        //So we will add the ProbabilityEntry of B when he is T
-        //And don't add the ProbabilityEntry of B when he is F
-//        Map<String, List<ProbabilityEntry>> evidenceMap = new HashMap<>();
-//        for (Variable var : network.getVariables()) {
-//            for (String part : evidenceParts) {
-//                if (!queryMap.containsKey(var.getName())){
-//                    if (var.getName().contains(String.valueOf(part.charAt(0)))) {
-//                            for (Definition def : network.getDefinitions()) {
-//                                if (def.getName().equals(var.getName())) {
-//                                    evidenceMap.put(var.getName(), def.getProbabilityList());
-//                                    break;
-//                                }
-//                            }
-//
-//                    }
-//                }
-//            }
-//        }
+
+        if (varValue.length == 2) {
+            String queryVarName = varValue[0].trim(); // Extract the name (e.g. "B0")
+
+            // Find the Definition (CPT) specifically for this query variable name
+            Definition queryDef = network.getDefinitions().stream()
+                    .filter(def -> def.getName().equals(queryVarName))
+                    .findFirst()
+                    .orElse(null);
+
+            if (queryDef != null) {
+                // Put only the CPT of the actual query variable into the map
+                queryMap.put(queryVarName, queryDef.getProbabilityList());
+            } else {
+                System.err.println("Error: Definition not found for query variable: " + queryVarName);
+                return new ArrayList<>(); // Cannot proceed without query variable definition
+            }
+        } else {
+            System.err.println("Error: Invalid query part format: " + queryAssignmentPart);
+            return new ArrayList<>();
+        }
 
         Map<String, List<ProbabilityEntry>> evidenceMap = new HashMap<>();
 

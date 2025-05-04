@@ -27,7 +27,7 @@ public class Algorithm1 {
      * @return A string representing the calculated conditional probability and the operation counts.
      */
     public static String calculateProbability(Map<String, String> requestedQueryAssignment, Map<String, List<ProbabilityEntry>> queryMap, Map<String, List<ProbabilityEntry>> evidenceMap, Map<String, List<ProbabilityEntry>> hiddenMap, BayesianNetwork network) {
-        resetCounters(); // Reset counters for this calculation
+        resetCounters();
 
         // Extract query variable name and the specific requested outcome
         String queryVarName = requestedQueryAssignment.keySet().iterator().next(); // Get name from the requested assignment
@@ -290,7 +290,6 @@ public class Algorithm1 {
             }
 
             // Find the matching ProbabilityEntry for this variable and its parent states in this assignment
-            // Pass def.getParents() as it gives the correct parent names in order
             ProbabilityEntry matchingEntry = findMatchingProbabilityEntry(varName, assignedValue, assignment, def.getParents(), probEntries);
 
 
