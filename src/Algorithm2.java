@@ -276,7 +276,7 @@ public class Algorithm2 {
             if (evidenceAssignments.containsKey(varName)) {
                 finalAssignment.put(varName, evidenceAssignments.get(varName));
             } else if (!requestedQueryAssignment.containsKey(varName)) {
-                //throw new IllegalStateException("Final normalized factor contains unexpected variable: " + varName);
+                throw new IllegalStateException("Final normalized factor contains unexpected variable: " + varName);
             }
         }
         System.out.println("DEBUG: Final assignment for lookup: " + finalAssignment);
