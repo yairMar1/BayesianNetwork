@@ -94,9 +94,13 @@ public class Ex1 {
                     System.out.println("Hidden variables: " + vars.get(3));
 
                     if (vars.size() == 4) {
+                        @SuppressWarnings("unchecked")
                         Map<String, String> requestedQueryAssignment = (Map<String, String>) vars.get(0);
+                        @SuppressWarnings("unchecked")
                         Map<String, List<ProbabilityEntry>> queryMap = (Map<String, List<ProbabilityEntry>>) vars.get(1);
+                        @SuppressWarnings("unchecked")
                         Map<String, List<ProbabilityEntry>> evidenceMap = (Map<String, List<ProbabilityEntry>>) vars.get(2);
+                        @SuppressWarnings("unchecked")
                         Map<String, List<ProbabilityEntry>> hiddenMap = (Map<String, List<ProbabilityEntry>>) vars.get(3);
 
                         String algorithm = queryLine.substring(queryLine.lastIndexOf(",") + 1).trim();

@@ -349,8 +349,10 @@ public class Algorithm3 {
                     operations *= v.getOutcomes().size();
                 }
             }
-
-            if(operations < minSize) {
+            // Two option:
+            // 1. If the variable is had fewer operations than the current minimum
+            // 2. If the variable has the same number of operations, but its name is lexicographically smaller
+            if(operations < minSize){
                 minSize = operations;
                 bestHiddenVariable = hiddenVarName;
             }
