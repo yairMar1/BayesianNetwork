@@ -1,7 +1,4 @@
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * This class creates a "definition" object:
@@ -16,8 +13,14 @@ public class Definition {
 
     public Definition(String name, List<String> parents, List<ProbabilityEntry> ProbabilityList) {
         _name = Objects.requireNonNull(name, "Name cannot be null");
-        _parents = List.copyOf(Objects.requireNonNull(parents, "Parents List cannot be null, it should be empty"));
-        _probabilityList = List.copyOf(Objects.requireNonNull(ProbabilityList, "ProbabilityList cannot be null"));
+
+        Objects.requireNonNull(parents, "Parents list cannot be null");
+        Objects.requireNonNull(ProbabilityList, "ProbabilityList cannot be null");
+        List<String> parentsCopy = new ArrayList<>(parents);
+        List<ProbabilityEntry> probabilityListCopy = new ArrayList<>(ProbabilityList);
+
+        _parents = Collections.unmodifiableList(parentsCopy);
+        _probabilityList = Collections.unmodifiableList(probabilityListCopy);
     }
 
     public String getName() {return _name;}

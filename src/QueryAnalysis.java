@@ -56,26 +56,22 @@ public class QueryAnalysis {
             return new ArrayList<>();
         }
 
-        if (varValue.length == 2) {
-            String queryVarName = varValue[0].trim(); // Extract the name (e.g. "B0")
+        String queryVarName = varValue[0].trim(); // Extract the name (e.g. "B0")
 
-            // Find the Definition (CPT) specifically for this query variable name
-            Definition queryDef = network.getDefinitions().stream()
-                    .filter(def -> def.getName().equals(queryVarName))
-                    .findFirst()
-                    .orElse(null);
+        // Find the Definition (CPT) specifically for this query variable name
+        Definition queryDef = network.getDefinitions().stream()
+                .filter(def -> def.getName().equals(queryVarName))
+                .findFirst()
+                .orElse(null);
 
-            if (queryDef != null) {
-                // Put only the CPT of the actual query variable into the map
-                queryMap.put(queryVarName, queryDef.getProbabilityList());
-            } else {
-                System.err.println("Error: Definition not found for query variable: " + queryVarName);
-                return new ArrayList<>(); // Cannot proceed without query variable definition
-            }
+        if (queryDef != null) {
+            // Put only the CPT of the actual query variable into the map
+            queryMap.put(queryVarName, queryDef.getProbabilityList());
         } else {
-            System.err.println("Error: Invalid query part format: " + queryAssignmentPart);
-            return new ArrayList<>();
+            System.err.println("Error: Definition not found for query variable: " + queryVarName);
+            return new ArrayList<>(); // Cannot proceed without query variable definition
         }
+
 
         Map<String, List<ProbabilityEntry>> evidenceMap = new HashMap<>();
 

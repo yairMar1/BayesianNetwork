@@ -38,7 +38,7 @@ public class ProbabilityEntry {
         for (Map.Entry<String, String> entry : _statusParent.entrySet()) {
             sb.append(entry.getKey()).append("=").append(entry.getValue()).append(", ");
         }
-        if (!sb.isEmpty()) {
+        if (sb.length() > 0) {
             sb.setLength(sb.length() - 2); // Remove the last comma and space
         }
         return sb.toString();

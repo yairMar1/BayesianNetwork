@@ -267,7 +267,8 @@ public class NetworkXmlParser {
                     double probability = _probabilities.get(_probabilityIndex++);
                     // Create the entry for this specific combination
                     // Use Map.copyOf to ensure each entry gets its own immutable map instance
-                    ProbabilityEntry entry = new ProbabilityEntry(Map.copyOf(currentParentStates), probability, childOutcome);
+                    Map<String, String> parentStatesCopy = new HashMap<>(currentParentStates);
+                    ProbabilityEntry entry = new ProbabilityEntry(parentStatesCopy, probability, childOutcome);
                     _targetEntryList.add(entry);
                 }
                 return; // Finished with this combination of parent states

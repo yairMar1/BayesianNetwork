@@ -38,7 +38,7 @@ public class Algorithm3 {
         // the map looks like: {varName, outcome}
         final Map<String, String> evidenceAssignments = evidenceMap.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getFirst().getOutcome()));
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get(0).getOutcome()));
 
         // Store the query variable in the Definition object
         Definition queryDefinition = network.getDefinitions().stream()
@@ -143,10 +143,10 @@ public class Algorithm3 {
         factors = restrictedFactors;
 
         // Making list of hidden variables' ordered by their names we want to eliminate
-        List<String> hiddenVariableNames = new ArrayList<>(hiddenMap.keySet().stream()
+        List<String> hiddenVariableNames = hiddenMap.keySet().stream()
                 .filter(relevantVariable::contains)
-                .filter(hVar -> !evidenceAssignments.containsKey(hVar)) // Ensure we don't include evidence var
-                .toList());
+                .filter(hVar -> !evidenceAssignments.containsKey(hVar))
+                .collect(Collectors.toList());
 
         // loop through the factors that contain hidden variables
         // and made a join on them
@@ -171,7 +171,7 @@ public class Algorithm3 {
             Factor newFactor;
 
             if (factorsToJoin.size() == 1) {
-                newFactor = factorsToJoin.getFirst();
+                newFactor = factorsToJoin.get(0);
                 System.out.println("Only one factor contains " + hiddenVarName + ". No join needed.");
             } else {
                 System.out.println("Factors to join for " + hiddenVarName + ": " +
@@ -203,7 +203,7 @@ public class Algorithm3 {
                     System.out.println("Intermediate join result size: " + joinedFactor.getValues().size()); // This size should now be smaller!
                 }
                 // After the loop, only one factor remains in 'currentFactorsToJoin' with the current hidden variable
-                newFactor = currentFactorsToJoin.getFirst();
+                newFactor = currentFactorsToJoin.get(0);
                 System.out.println("Final Joined Factor for " + hiddenVarName + " (after pairwise joins):\n" + newFactor);
             }
 
@@ -236,8 +236,20 @@ public class Algorithm3 {
         Factor finalFactor;
         if (factors.isEmpty()) {
             Variable queryVar = variableMap.get(queryVariableName);
-            Map<Map<String, String>, Double> zeroValue = Map.of(Map.of(queryVariableName, requestedQueryAssignment.get(queryVariableName)), 0.0);
-            finalFactor = new Factor(List.of(queryVar), zeroValue);
+            if (queryVar == null) {
+                throw new IllegalStateException("Query variable '" + queryVariableName + "' not found in variableMap.");
+            }
+            String requestedValue = requestedQueryAssignment.get(queryVariableName);
+            if (requestedValue == null) {
+                throw new IllegalStateException("Requested value for query variable '" + queryVariableName + "' not found in requestedQueryAssignment map.");
+            }
+            Map<String, String> innerMap = new HashMap<>();
+            innerMap.put(queryVariableName, requestedValue);
+            Map<Map<String, String>, Double> zeroValueMap = new HashMap<>();
+            zeroValueMap.put(innerMap, 0.0);
+            List<Variable> domainList = new ArrayList<>();
+            domainList.add(queryVar);
+            finalFactor = new Factor(domainList, zeroValueMap);
 
         } else { // The factors need to contain only the query variable
             List<Factor> remainingFactors = new ArrayList<>(factors);
@@ -256,7 +268,7 @@ public class Algorithm3 {
                 remainingFactors.remove(f2);
                 remainingFactors.add(joined);
             }
-            finalFactor = remainingFactors.getFirst();
+            finalFactor = remainingFactors.get(0);
         }
 
         System.out.println("Final Factor (Pre-Normalization):\n" + finalFactor);
@@ -371,7 +383,10 @@ public class Algorithm3 {
                 double combinedProbability = prob1 * prob2;
                 _numberOfMultiplications++;
 
-                newValues.put(Map.copyOf(rowOfCombination), combinedProbability);
+                //newValues.put(Map.copyOf(rowOfCombination), combinedProbability);
+                Map<String, String> keyCopy = new HashMap<>(rowOfCombination);
+                Map<String, String> immutableKey = Collections.unmodifiableMap(keyCopy);
+                newValues.put(immutableKey, combinedProbability);
 
             } catch (IllegalArgumentException e) {
                 System.err.println("Error during joinTwoFactors: " + e.getMessage());
@@ -511,7 +526,7 @@ public class Algorithm3 {
                                                      Map<String, String> evidenceAssignments) {
         // Base case: if all variables have been assigned, add the current combination to the list
         if (varIndex == domain.size()) {
-            allAssignments.add(Map.copyOf(currentAssignment));
+            allAssignments.add(new HashMap<>(currentAssignment));
             return;
         }
 

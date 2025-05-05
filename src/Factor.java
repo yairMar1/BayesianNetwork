@@ -53,13 +53,19 @@ public class Factor {
 
     // This constructor is used to create a Factor with a specific domain and values.
     Factor(List<Variable> domain, Map<Map<String, String>, Double> values) {
-        _domain = List.copyOf(Objects.requireNonNull(domain));
-        // Ensure keys in values map are immutable if they aren't already
-        Map<Map<String, String>, Double> immutableValues = new HashMap<>();
+        Objects.requireNonNull(domain, "Factor domain list cannot be null");
+        Objects.requireNonNull(values, "Factor values map cannot be null");
+
+        List<Variable> domainCopy = new ArrayList<>(domain);
+        _domain = Collections.unmodifiableList(domainCopy);
+
+        Map<Map<String, String>, Double> processedValues = new HashMap<>();
         for (Map.Entry<Map<String, String>, Double> entry : values.entrySet()) {
-            immutableValues.put(Collections.unmodifiableMap(new HashMap<>(entry.getKey())), entry.getValue());
+            Map<String, String> keyCopy = new HashMap<>(entry.getKey());
+            Map<String, String> immutableKey = Collections.unmodifiableMap(keyCopy);
+            processedValues.put(immutableKey, entry.getValue());
         }
-        _values = Collections.unmodifiableMap(immutableValues);
+        _values = Collections.unmodifiableMap(processedValues);
     }
 
     public List<Variable> getDomain() {return _domain;}
@@ -182,7 +188,10 @@ public class Factor {
         sb.append("\n");
         for (String header : columnHeaders) {
             int width = columnWidths.get(header);
-            sb.append("-".repeat(Math.max(0, width + 2)));
+            int repeatCount = Math.max(0, width + 2);
+            for (int i = 0; i < repeatCount; i++) {
+                sb.append('-');
+            }
         }
         sb.append("\n");
 
@@ -198,9 +207,9 @@ public class Factor {
 
                 int cmp = 0;
                 if ("T".equals(val1) && "F".equals(val2)) {
-                    cmp = -1; // T קודם ל F
+                    cmp = -1;
                 } else if ("F".equals(val1) && "T".equals(val2)) {
-                    cmp = 1;  // F אחרי T
+                    cmp = 1;
                 } else {
                     if (val1 == null && val2 == null) continue;
                     if (val1 == null) return -1;

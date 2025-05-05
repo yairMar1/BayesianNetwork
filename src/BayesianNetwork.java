@@ -13,8 +13,13 @@ public class BayesianNetwork {
 
     public BayesianNetwork(String name, List<Definition> definitions, List<Variable> variables) {
         _name = Objects.requireNonNull(name,"Name cannot be null");
-        _definitions = List.copyOf(Objects.requireNonNull(definitions));
-        _variables = List.copyOf(Objects.requireNonNull(variables));
+        Objects.requireNonNull(definitions, "Definitions list cannot be null");
+        Objects.requireNonNull(variables, "Variables list cannot be null");
+        List<Definition> definitionsCopy = new ArrayList<>(definitions);
+        List<Variable> variablesCopy = new ArrayList<>(variables);
+
+        _definitions = Collections.unmodifiableList(definitionsCopy);
+        _variables = Collections.unmodifiableList(variablesCopy);
     }
 
     public String getName() {return _name;}

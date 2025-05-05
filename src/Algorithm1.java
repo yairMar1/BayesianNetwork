@@ -45,7 +45,7 @@ public class Algorithm1 {
         // the map looks like: {varName, outcome}
         final Map<String, String> evidenceAssignments = evidenceMap.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getFirst().getOutcome()));
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get(0).getOutcome()));
 
 
         // Store the query variable in the Definition object

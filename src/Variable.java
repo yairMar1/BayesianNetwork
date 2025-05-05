@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -11,7 +13,10 @@ public class Variable {
 
     public Variable(String name, List<String> outcomes) {
         _name = Objects.requireNonNull(name, "Name cannot be null");
-        _outcomes = List.copyOf(Objects.requireNonNull(outcomes, "Outcomes cannot be null"));
+
+        Objects.requireNonNull(outcomes, "Outcomes list cannot be null");
+        List<String> outcomesCopy = new ArrayList<>(outcomes);
+        this._outcomes = Collections.unmodifiableList(outcomesCopy);
     }
 
     public String getName() {return _name;}
