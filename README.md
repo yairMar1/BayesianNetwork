@@ -8,7 +8,7 @@ The program runs on an input file containing a series of queries. The first line
 
 **Sample `input.txt`:**
 
-alarm_net.xml
+alarm_net.xml  
 P(B=F,E=T,A=T,M=T,J=F)  
 P(B=T|J=T,M=T),1  
 P(B=T|J=T,M=T),2  
