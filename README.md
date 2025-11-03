@@ -9,23 +9,23 @@ The program runs on an input file containing a series of queries. The first line
 **Sample `input.txt`:**
 
 alarm_net.xml
-P(B=F,E=T,A=T,M=T,J=F)
-P(B=T|J=T,M=T),1
-P(B=T|J=T,M=T),2
-P(B=T|J=T,M=T),3
-P(J=T|B=T),1
-P(J=T|B=T),2
-P(J=T|B=T),3
+P(B=F,E=T,A=T,M=T,J=F)  
+P(B=T|J=T,M=T),1  
+P(B=T|J=T,M=T),2  
+P(B=T|J=T,M=T),3  
+P(J=T|B=T),1  
+P(J=T|B=T),2  
+P(J=T|B=T),3  
 
 **Expected Console Output:**
 
-0.00004,0,4
-0.28417,7,32
-0.28417,7,16
-0.28417,7,16
-0.84902,15,64
-0.84902,7,12
-0.84902,5,8
+0.00004,0,4  
+0.28417,7,32  
+0.28417,7,16  
+0.28417,7,16  
+0.84902,15,64  
+0.84902,7,12  
+0.84902,5,8  
 
 > **Explanation of the output:** The two numbers following the probability (e.g., `7,32`) represent the exact count of **additions and multiplications** performed. This was a key project requirement designed to benchmark algorithm performance in a way that is **independent of the underlying hardware**, providing a fair and consistent comparison.
 
